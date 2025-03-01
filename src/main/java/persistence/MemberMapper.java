@@ -263,7 +263,6 @@ public class MemberMapper {
         return "";
     }
 
-    //Find the number of men and women in the club
 
     public String numberOfWomenAndMen(){
         String query = "SELECT COUNT(gender), m.gender\n" +
