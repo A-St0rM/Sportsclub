@@ -3,6 +3,7 @@ package persistence;
 import DTO.MemberAndSportsDTO;
 import entities.Member;
 import entities.Sport;
+import exceptions.DatabaseException;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -106,18 +107,15 @@ public class MemberMapper {
                     MemberAndSportsDTO memberAndSportsDTO = new MemberAndSportsDTO(member, sports);
                     return memberAndSportsDTO;
                 }
-            } catch (SQLException throwables) {
-                // TODO: Make own throwable exception and let it bubble upwards
-                throwables.printStackTrace();
             }
         } catch (SQLException throwables) {
-            throwables.printStackTrace();
+            throw new DatabaseException("could not get member and sports by Id");
         }
         return null;
     }
 
 
-    public boolean deleteMember(int member_id) {
+    public boolean deleteMember(int member_id) throws DatabaseException{
         boolean result = false;
         String sql = "delete from member where member_id = ?";
         try (Connection connection = database.connect()) {
@@ -127,20 +125,18 @@ public class MemberMapper {
                 if (rowsAffected == 1) {
                     result = true;
                 }
-            } catch (SQLException throwables) {
-                // TODO: Make own throwable exception and let it bubble upwards
-                throwables.printStackTrace();
+                else{
+                    throw new DatabaseException("No member found with ID: " + member_id);
+                }
             }
-        } catch (SQLException throwables) {
-            // TODO: Make own throwable exception and let it bubble upwards
-            throwables.printStackTrace();
+        }
+        catch (SQLException e) {
+            throw new DatabaseException("could not delete this member with the id: " + member_id + e);
         }
         return result;
     }
 
-    public Member insertMember(Member member) {
-        boolean result = false;
-        int newId = 0;
+    public Member insertMember(Member member) throws DatabaseException{
         String sql = "insert into member (name, address, zip, gender, year) values (?,?,?,?,?)";
         try (Connection connection = database.connect()) {
             try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -150,28 +146,25 @@ public class MemberMapper {
                 ps.setString(4, member.getGender());
                 ps.setInt(5, member.getYear());
                 int rowsAffected = ps.executeUpdate();
-                if (rowsAffected == 1) {
-                    result = true;
+                if (rowsAffected == 0) {
+                    throw new DatabaseException("Insert failed, no rows affected");
                 }
+
                 ResultSet idResultset = ps.getGeneratedKeys();
+
                 if (idResultset.next()) {
-                    newId = idResultset.getInt(1);
-                    member.setMemberId(newId);
+                    member.setMemberId(idResultset.getInt(1));
                 } else {
-                    member = null;
+                    throw new DatabaseException("could not insert member");
                 }
-            } catch (SQLException throwables) {
-                // TODO: Make own throwable exception and let it bubble upwards
-                throwables.printStackTrace();
             }
-        } catch (SQLException throwables) {
-            // TODO: Make own throwable exception and let it bubble upwards
-            throwables.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("could not insert member" + e);
         }
         return member;
     }
 
-    public boolean updateMember(Member member) {
+    public boolean updateMember(Member member) throws DatabaseException {
         boolean result = false;
         String sql = "update member " +
                 "set name = ?, address = ?, zip = ?, gender = ?, year = ? " +
@@ -188,18 +181,14 @@ public class MemberMapper {
                 if (rowsAffected == 1) {
                     result = true;
                 }
-            } catch (SQLException throwables) {
-                // TODO: Make own throwable exception and let it bubble upwards
-                throwables.printStackTrace();
             }
-        } catch (SQLException throwables) {
-            // TODO: Make own throwable exception and let it bubble upwards
-            throwables.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("could not update member" + e);
         }
         return result;
     }
 
-    public int numberOfParticipantsOnTeam(String team_id) {
+    public int numberOfParticipantsOnTeam(String team_id) throws DatabaseException {
         String query = "SELECT COUNT(member.member_id), t.team_id FROM member\n" +
                 "JOIN registration r ON r.member_id = member.member_id \n" +
                 "JOIN team t ON t.team_id = r.team_id\n" +
@@ -217,13 +206,9 @@ public class MemberMapper {
                     return count;
                 }
 
-            } catch (SQLException throwables) {
-                // TODO: Make own throwable exception and let it bubble upwards
-                throwables.printStackTrace();
             }
-        } catch (SQLException throwables) {
-            // TODO: Make own throwable exception and let it bubble upwards
-            throwables.printStackTrace();
+        } catch (SQLException e) {
+            throw new DatabaseException("could not get number of participants of this team" + e);
         }
         return 0;
     }
@@ -231,7 +216,7 @@ public class MemberMapper {
 
     //Find the number of participants for each sport
 
-    public String numberOfParticipantsForSport(String sport){
+    public String numberOfParticipantsForSport(String sport) throws DatabaseException{
 
         String query = "SELECT COUNT(m.member_id), sport\n" +
                 "FROM member m\n" +
@@ -252,19 +237,16 @@ public class MemberMapper {
                     return sportName + ": " + count;
                 }
 
-            } catch (SQLException throwables) {
-                // TODO: Make own throwable exception and let it bubble upwards
-                throwables.printStackTrace();
             }
-        } catch (SQLException throwables) {
+        } catch (SQLException e) {
             // TODO: Make own throwable exception and let it bubble upwards
-            throwables.printStackTrace();
+            throw new DatabaseException("could not get number of participants for the Sport" + e);
         }
         return "";
     }
 
 
-    public String numberOfWomenAndMen(){
+    public String numberOfWomenAndMen() throws DatabaseException{
         String query = "SELECT COUNT(gender), m.gender\n" +
                 "FROM member m\n" +
                 "GROUP BY m.gender";
@@ -279,13 +261,10 @@ public class MemberMapper {
                     return gender + ": " + count;
                 }
 
-            } catch (SQLException throwables) {
-                // TODO: Make own throwable exception and let it bubble upwards
-                throwables.printStackTrace();
             }
-        } catch (SQLException throwables) {
+        } catch (SQLException e) {
             // TODO: Make own throwable exception and let it bubble upwards
-            throwables.printStackTrace();
+            throw new DatabaseException("could not get number of women and men" + e);
         }
         return "";
     }

@@ -56,6 +56,7 @@ class MemberMapperTest {
                 stmt.execute("ALTER TABLE test.member ALTER COLUMN member_id SET DEFAULT nextval('test.member_member_id_seq')");
                 stmt.execute("CREATE SEQUENCE test.sport_sport_id_seq");
                 stmt.execute("ALTER TABLE test.sport ALTER COLUMN sport_id SET DEFAULT nextval('test.sport_sport_id_seq')");
+                stmt.execute("ALTER TABLE test.member ADD CONSTRAINT gender_check CHECK (gender IN ('m', 'f'))");
             }
         }
         catch (SQLException throwables)
@@ -166,17 +167,29 @@ class MemberMapperTest {
         //(fail) Update a non-existent member.
     }
 
-
     //Create a new test in which you will try to delete two members and find out if it went well.
-    //
-    //Create a new test in which you will delete a member with a member_id that does not exist. It could be member_id = 1234. Try to figure out how to test it correctly. For this to work, you will need to use assertThrows and take a close look at the exceptionhandling in the deleteMember method. Hint: Try this version:
-    //
-    //@Test
-    //void deleteMemberUnknownId() throws DatabaseException {
-    //    assertThrows(DatabaseException.class, () -> memberMapper.deleteMember(12312));
-    //}
-    //Create a test in which you will try to insert a new member with illegal types. It could be that you try to insert a member with an illegal gender type. "x" for example. For this to work, you will need to use assertThrows.
-    //
-    //Adding a brand new xxxMapperTest
-    //Yesterday we worked on adding a RegistrationMapper to the application in the exercises. In case you have made it, then add a new test class and test the mapper.
+    @Test
+    void deleteTwoMembers(){
+       memberMapper.deleteMember(1);
+       memberMapper.deleteMember(2);
+
+       List<Member> members = memberMapper.getAllMembers();
+
+       assertEquals(1, members.size());
+    }
+
+
+    //Her forventes det, at når deleteMember-metoden kaldes med argumentet 12312, så vil den kaste en DatabaseException.
+    // Hvis deleteMember ikke kaster DatabaseException, vil testen fejle.
+    @Test
+    void deleteMemberUnknownId() throws DatabaseException {
+        assertThrows(DatabaseException.class, () -> memberMapper.deleteMember(12312));
+    }
+
+    //tilføjede en check constrain, så der kunne opstå fejl med køn
+    @Test
+    void InsertMemberWithIllegalTypes() throws DatabaseException {
+        Member member = new Member("Alissa","voltvej", 5000, "x", 2005);
+        assertThrows(DatabaseException.class, () -> memberMapper.insertMember(member));
+    }
 }
